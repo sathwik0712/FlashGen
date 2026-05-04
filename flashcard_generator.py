@@ -41,7 +41,7 @@ def generate_flashcards(text):
     
     try:
         # Using a model name that is confirmed to exist in your environment
-        model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        model = genai.GenerativeModel('gemini-flash-latest')
         
         response = None
         for attempt in range(3):
