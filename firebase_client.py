@@ -9,8 +9,25 @@ load_dotenv()
 def initialize_firebase():
     """
     Initializes the Firebase app using the service account JSON.
+    Supports both local .json file and Streamlit Cloud Secrets.
     """
     if not firebase_admin._apps:
+        # 1. Try to load from Streamlit Cloud Secrets first
+        import streamlit as st
+        try:
+            if "firebase" in st.secrets:
+                firebase_dict = dict(st.secrets["firebase"])
+                if "private_key" in firebase_dict:
+                    # Fix escaped newlines in Streamlit Secrets
+                    firebase_dict["private_key"] = firebase_dict["private_key"].replace("\\n", "\n")
+                cred = credentials.Certificate(firebase_dict)
+                firebase_admin.initialize_app(cred)
+                print("Firebase initialized successfully from Streamlit Secrets.")
+                return True
+        except Exception as e:
+            pass # Fallback to local file
+            
+        # 2. Fallback to local file for development
         cred_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "firebase_credentials.json")
         if not os.path.exists(cred_path):
             print(f"CRITICAL: Firebase credentials file NOT FOUND at {cred_path}")
