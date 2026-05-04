@@ -24,7 +24,10 @@ def initialize_firebase():
                 firebase_admin.initialize_app(cred)
                 print("Firebase initialized successfully from Streamlit Secrets.")
                 return True
+            else:
+                st.error("No 'firebase' key found in st.secrets!")
         except Exception as e:
+            st.error(f"Streamlit Secrets Firebase Init Error: {e}")
             pass # Fallback to local file
             
         # 2. Fallback to local file for development
