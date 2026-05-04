@@ -96,6 +96,8 @@ def save_flashcards(flashcards, user_id, set_name=None):
         })
         return True
     except Exception as e:
+        import streamlit as st
+        st.error(f"Firestore Save Error: {e}")
         print(f"Error saving flashcard set to Firebase: {e}")
         return False
 
