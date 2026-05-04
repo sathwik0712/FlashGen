@@ -1,40 +1,4 @@
-import os
-import json
-import time
-import google.generativeai as genai
-import google.api_core.exceptions
-from dotenv import load_dotenv
-
-load_dotenv()
-
-def get_api_key():
-    # 1. Try environment variable (local)
-    key = os.getenv("GEMINI_API_KEY")
-    if key:
-        return key
-    # 2. Try Streamlit Secrets (cloud)
-    try:
-        import streamlit as st
-        if "GEMINI_API_KEY" in st.secrets:
-            return st.secrets["GEMINI_API_KEY"]
-    except:
-        pass
-    return None
-
-api_key = get_api_key()
-if api_key:
-    genai.configure(api_key=api_key)
-
-def generate_flashcards(text):
-    """
-    Calls the Gemini API to generate flashcards from the provided text.
-    Returns a list of dictionaries with 'question' and 'answer' keys.
-    """
-    prompt = f"""
-    You are an expert educational assistant. Your task is to read the following text extracted from a PDF and generate useful flashcards (Questions and Answers) to help someone study this material.
-    
-    Please output the flashcards as a JSON list of objects, where each object has a 'question' and an 'answer' key. Do not include any other text or formatting, just the raw JSON array.
-    
+https://flashgen-38e7xuvtmmqmnfcaq6gjgr.streamlit.app/    
     Text:
     {text}
     """
