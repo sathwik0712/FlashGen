@@ -1,11 +1,48 @@
-https://flashgen-38e7xuvtmmqmnfcaq6gjgr.streamlit.app/    
-    Text:
+import os
+import json
+import time
+import google.generativeai as genai
+import google.api_core.exceptions
+from dotenv import load_dotenv
+
+load_dotenv()
+
+def _get_api_key():
+    """Get API key from environment or Streamlit secrets (for cloud deployment)."""
+    key = os.getenv("GEMINI_API_KEY")
+    if not key:
+        try:
+            import streamlit as st
+            key = st.secrets.get("GEMINI_API_KEY", "")
+        except Exception:
+            pass
+    return key
+
+def generate_flashcards(text):
+    """
+    Calls the Gemini API to generate flashcards from the provided text.
+    Uses the most credit-efficient model possible.
+    """
+    # 1. Configure API
+    api_key = _get_api_key()
+    if not api_key:
+        import streamlit as st
+        st.error("GEMINI_API_KEY is not set.")
+        return []
+    genai.configure(api_key=api_key)
+
+    # 2. CREDIT SAVER: Truncate text to avoid massive token usage
+    # Most study material fits in 12,000 chars (~3,000 tokens)
+    text = text[:12000]
+
+    prompt = f"""
+    You are an expert educational assistant. Generate a JSON list of objects with 'question' and 'answer' keys from this text:
     {text}
     """
     
     try:
-        # Using a model name that is confirmed to exist in your environment
-        model = genai.GenerativeModel('gemini-flash-latest')
+        # 3. Use the smallest/cheapest model (Flash Lite)
+        model = genai.GenerativeModel('gemini-flash-lite-latest')
         
         response = None
         for attempt in range(3):
@@ -15,50 +52,25 @@ https://flashgen-38e7xuvtmmqmnfcaq6gjgr.streamlit.app/
             except google.api_core.exceptions.ResourceExhausted:
                 import streamlit as st
                 if attempt < 2:
-                    wait_time = 10 * (attempt + 1)
-                    st.warning(f"Rate limit reached. Waiting {wait_time}s to retry...")
-                    time.sleep(wait_time)
+                    time.sleep(10 * (attempt + 1)) # Wait and retry
                 else:
-                    st.error("Gemini API Quota Exhausted. Please wait a few minutes or check your usage in Google AI Studio.")
+                    st.error("Daily Quota Reached. Try again tomorrow!")
                     return []
-            except Exception as e:
-                import streamlit as st
-                st.error(f"API Error: {e}")
-                return []
         
         if not response or not response.text:
-            print("Gemini returned an empty response.")
             return []
         
         # Robust JSON extraction
         response_text = response.text.strip()
-        
-        # Try to find the start and end of the JSON array
         start_idx = response_text.find('[')
         end_idx = response_text.rfind(']')
         
         if start_idx != -1 and end_idx != -1:
             json_str = response_text[start_idx:end_idx+1]
-            try:
-                flashcards = json.loads(json_str)
-                return flashcards
-            except json.JSONDecodeError as e:
-                print(f"JSON decode error: {e}")
-        
-        # Fallback to simple stripping if indices not found or failed
-        if response_text.startswith("```json"):
-            response_text = response_text[7:-3].strip()
-        elif response_text.startswith("```"):
-            response_text = response_text[3:-3].strip()
+            return json.loads(json_str)
             
-        try:
-            flashcards = json.loads(response_text)
-            return flashcards
-        except Exception as e:
-            print(f"Final fallback failed: {e}")
-            return []
+        return []
     except Exception as e:
         import streamlit as st
-        st.error(f"Gemini API Error: {e}")
-        print(f"Error generating flashcards: {e}")
+        st.error(f"Generation Error: {e}")
         return []
